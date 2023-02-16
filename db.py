@@ -1,10 +1,9 @@
-import enum
 from sqlalchemy import Table, Column, ForeignKey, create_engine
 from sqlalchemy import DateTime, String, BigInteger, Integer, Boolean, Float
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, Session, backref
-from sqlalchemy import Enum
+from sqlalchemy.orm import relationship, Session, backref, declarative_base
 from dotenv import dotenv_values
+from sqlalchemy_enum34 import EnumType
+from config import RequestType
 
 Base = declarative_base()
 
@@ -61,14 +60,18 @@ class Command(Base):
 
 class RequestToAdmin(Base):
 
-    class RequestType(enum.Enum):
-        NEW_WORKER = 1
+    # https://medium.com/uncountable-engineering/coherent-python-and-postgresql-enums-using-sqlalchemy-3bb23d9d369a
+    # SqlRequestType = Enum(
+    #     RequestType,
+    #     name='request_type',
+    #     values_callable=lambda obj: [e.value for e in obj]
+    # )
 
     __tablename__ = 'requests_to_admin'
     request_id = Column(Integer(), primary_key=True)
     chat_id = Column(BigInteger(), ForeignKey('workers.chat_id'))
     message_id = Column(Integer(), nullable=False)
-    request_type = Column(Enum(RequestType), nullable=False)
+    request_type = Column(EnumType(RequestType, name='request_type'), nullable=False)
     new_worker_chat_id = Column(BigInteger(), default=None)
 
 
@@ -115,7 +118,7 @@ def init_db():
     #     username='@Pingvinopitek',
     #     rating=35
     # )
-    session.add(w2)
+    # session.add(w2)
 
     # w3 = Worker(
     #     chat_id=395920445,
@@ -130,14 +133,17 @@ def init_db():
     session.close()
 
 
+def create_db(engine):
+    # Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
+
+
 if __name__ == "__main__":
     config = dotenv_values()
     engine = create_engine(
         config['DB_CONF'],
         echo=True
     )
-    Base.metadata.drop_all(engine)
 
-    Base.metadata.create_all(engine)
-
-    # init_db()
+    create_db(engine)
+    init_db()

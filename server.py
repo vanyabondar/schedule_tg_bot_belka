@@ -207,7 +207,7 @@ async def command_clean_shifts(message: types.Message):
 @command_decorator
 async def start_from_anonymous(message: types.Message):
     logger.info(lmc.command(message))
-    await tb.uncknown_user(message)
+    await tb.unknown_user_start(message)
 
 
 @tb.dp.message_handler(lambda message: not tb.is_admin(message))

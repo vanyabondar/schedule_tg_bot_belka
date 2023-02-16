@@ -64,7 +64,7 @@ class TelegramBot:
 
     def is_admin(self, message):
         user = self.db.get_worker(message.chat.id)
-        return user.is_admin
+        return user and user.is_admin
 
     def is_worker(self, message):
         worker = self.db.get_worker(message.chat.id)
@@ -185,9 +185,9 @@ and got coeff {coefficient}')
         logger.success('rating was changed')
         await message.reply(bot_messages['ok'])
 
-    async def unknown_user(self, message):
+    async def unknown_user_start(self, message):
         chat_id = message.chat.id
-        if 'username' in message.chat:
+        if 'username' in message.chat and message.chat.username is not None:
             username = '@' + message.chat.username
         else:
             username = 'id:' + str(chat_id)
@@ -195,14 +195,14 @@ and got coeff {coefficient}')
         kb = self.make_keyboard_add_worker(chat_id, username)
         for admin in self.db.get_admins():
             mess = await self.send_message_to_user(
-                admin,
+                admin.chat_id,
                 MessageCreator.start_from_anonymous(message),
                 parse_mode='HTML',
                 reply_markup=kb)
-            self.db.add_keyboard(
-                admin,
+            self.db.add_request_to_admin(
+                admin.chat_id,
                 mess.message_id,
-                'uncknown_user',
+                config.RequestType.NEW_WORKER,
                 chat_id)
 
         await self.bot.send_photo(
@@ -479,13 +479,13 @@ with id {message.chat.id}')
         for admin in self.db.get_admins():
             try:
                 await self.bot.forward_message(
-                    chat_id=admin,
+                    chat_id=admin.chat_id,
                     from_chat_id=message.chat.id,
                     message_id=message.message_id)
+                logger.success(f'\'{message.text}\' was forwarded to admins')
             except (exceptions.ChatNotFound, exceptions.BotBlocked) as err:
                 logger.warning(f'{admin} - {err}')
             await message.reply(bot_messages['ok'])
-        logger.success(f'\'{message.text}\' was forwarded to admins')
 
     async def notify_workers(self, message):
         mess = Parser.without_command(message.text, '/notify_all')
@@ -505,6 +505,7 @@ with id {message.chat.id}')
             await message.reply(bot_messages['invalid_data'])
             await message.reply(bot_messages['notify_all_template'])
 
+    # TODO_: add exception and logging
     async def accept_new_worker(self, chat_id, username):
         worker = Worker(
             chat_id=chat_id,
@@ -514,15 +515,16 @@ with id {message.chat.id}')
             message_id=None
         )
         self.db.save_worker(worker)
-        for kb in self.db.get_keyboards(chat_id):
-            await self.clear_keyboard(kb.chat_id, kb.message_id)
-            self.db.delete_keyboard(kb.keyboard_id)
+        for rq in self.db.get_requests_to_admin(chat_id):
+            await self.clear_keyboard(rq.chat_id, rq.message_id)
+            self.db.delete_request(rq.request_id)
         await self.send_message_to_user(chat_id, bot_messages['start_auth'])
 
+    # TODO_: add exception and logging
     async def decline_worker(self, chat_id):
-        for kb in self.db.get_keyboards(chat_id):
-            await self.clear_keyboard(kb.chat_id, kb.message_id)
-            self.db.delete_keyboard(kb.keyboard_id)
+        for rq in self.db.get_requests_to_admin(chat_id):
+            await self.clear_keyboard(rq.chat_id, rq.message_id)
+            self.db.delete_request(rq.request_id)
         await self.send_message_to_user(
             chat_id,
             bot_messages['answer_decline_worker'])

@@ -226,11 +226,11 @@ class ScheduleDB:
             session.close()
         return res
 
-    def add_request_to_admin(self, chat_id, message_id, kb_type, worker_chat_id):
+    def add_request_to_admin(self, chat_id, message_id, request_type, worker_chat_id):
         request = db.RequestToAdmin(
             chat_id=chat_id,
             message_id=message_id,
-            keyboard_type=kb_type,
+            request_type=request_type,
             new_worker_chat_id=worker_chat_id
         )
 
@@ -244,17 +244,17 @@ class ScheduleDB:
     def get_requests_to_admin(self, key):
         session = self.Session()
         try:
-            kbs = session.query(db.Keyboard).filter(
-                db.Keyboard.new_worker_chat_id == key)
+            request = session.query(db.RequestToAdmin).filter(
+                db.RequestToAdmin.new_worker_chat_id == key)
         finally:
             session.close()
-        return kbs
+        return request
 
-    def delete_keyboard(self, id):
+    def delete_request(self, request_id):
         session = self.Session()
         try:
-            k = session.query(db.Keyboard).get(id)
-            session.delete(k)
+            r = session.query(db.RequestToAdmin).get(request_id)
+            session.delete(r)
             session.commit()
         finally:
             session.close()
