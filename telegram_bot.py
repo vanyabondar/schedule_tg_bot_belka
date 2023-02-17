@@ -237,8 +237,12 @@ end_time({command.end_time}) has passed')
             logger.warning(f'schedule creating canceled because \
 all_shifts_has_worker')
             return
+
         self.db.save_command(command)
+        command = self.db.get_command()
+        self.db.update_command_id_for_shifts(shifts, command.command_id)
         self.db.change_all_worker({'is_done': False})
+
         logger.info('schedule creating was started')
         await self.continue_creating_schedule()
 
@@ -258,28 +262,28 @@ all_shifts_has_worker')
         ga_schedule, ga_fitness = ga.calc_schedule(**GA_config)
         logger.info('generic algorithm was finished')
         # Не виводиться графік
-        logger.debug(f'answer: {str(ga_schedule)} mark: {str(ga_fitness)}')
+        logger.debug(f'answer: {[str(x) for x in ga_schedule]} mark: {str(ga_fitness)}')
 
-        shifts_with_workers = []
-        for shift in ga_schedule:
-            if shift.final_worker:
-                shifts_with_workers.append(shift)
-        self.db.update_shifts_has_worker([shift.id for shift in shifts_with_workers], True)
+        schedule = integration_from_db_to_ga.from_ga_schedule_to_db(
+            [shift for shift in ga_schedule if shift.final_worker]
+        )
+        self.db.update_shifts_has_worker([shift.shift_id for shift in schedule], True)
 
-        await self.schedule_notify(shifts_with_workers, workers)
-        self.db.save_schedule(integration_from_db_to_ga.from_ga_schedule_to_db(shifts_with_workers), many=True)
+        self.db.save_schedule(schedule, many=True)
+        command = self.db.get_command()
+        await self.schedule_notify(workers, command.command_id)
         self.db.change_command({'is_done': True})
 
         logger.success('schedule creating was finished')
 
-    async def schedule_notify(self, schedule, workers):
+    async def schedule_notify(self, workers, command_id):
+        schedule = self.db.get_schedule(command_id=command_id)
         await self.notify_admins(MessageCreator.schedule(schedule))
-        # await self.notify_admins(
-        #     MessageCreator.change_rating_from_schedule(schedule))
         for worker in workers:
+            worker_schedule = [shift for shift in schedule if shift.worker.chat_id == worker.chat_id]
             mess = await self.send_message_to_user(
                 worker.chat_id,
-                MessageCreator.personal_schedule(worker.chat_id, schedule))
+                MessageCreator.personal_schedule(worker_schedule))
             if mess:
                 logger.info(f'{worker.username} get his schedule')
 
@@ -587,10 +591,10 @@ with id {message.chat.id}')
             else:
                 await message.reply(bot_messages['shift_does_not_exist'])
                 logger.warning('shift with id: {shift_id} does not exist')
-        except (ValueError) as err:
+        except ValueError as err:
             await message.reply(bot_messages['invalid_data'])
             await message.reply(bot_messages['delete_shift_template'])
-            logger.error(f'invalid data. ValuueError: {err}')
+            logger.error(f'invalid data. ValueError: {err}')
             return
 
     async def change_worker_for_shift(self, message):
@@ -640,7 +644,7 @@ does not exist')
             await message.reply(bot_messages['invalid_data'])
             await message.reply(
                 bot_messages['change_worker_for_shift_template'])
-            logger.error(f'invalid data. ValuueError: {err}')
+            logger.error(f'invalid data. ValueError: {err}')
             return
 
     async def clean_shifts(self, message):
@@ -694,4 +698,3 @@ does not exist')
         self.dp.loop.create_task(self.on_startup())
         executor.start_polling(
             self.dp, skip_updates=False, on_startup=self.setup_bot_commands)
-            # self.dp, skip_updates=True)

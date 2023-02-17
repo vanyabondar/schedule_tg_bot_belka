@@ -22,8 +22,13 @@ class MessageCreator:
 
     @staticmethod
     def schedule(schedule):
-        res = [f'{shift.id} {shift.final_worker.id}' for shift in schedule]
-        message = bot_messages['schedule_header'] + '\n'.join(res)
+        if schedule:
+            message = (
+                bot_messages['schedule_header'] + '\n'
+                + '\n'.join(
+                    [f'{s.shift.name} {s.worker.username}' for s in schedule]))
+        else:
+            message = bot_messages['schedule_is_empty']
         return message
 
     # @staticmethod
@@ -33,12 +38,13 @@ class MessageCreator:
     #     return message
 
     @staticmethod
-    def personal_schedule(chat_id, schedule):
-
-        res = [line.id for line in schedule if line.final_worker == chat_id]
-        message = bot_messages['personal_schedule_without_shifts']
-        if res:
-            message = bot_messages['personal_schedule_header'] + '\n'.join(res)
+    def personal_schedule(schedule):
+        if schedule:
+            message = (
+                bot_messages['personal_schedule_header'] + '\n'
+                + '\n'.join([s.shift.name for s in schedule]))
+        else:
+            message = bot_messages['personal_schedule_without_shifts']
         return message
 
     @staticmethod

@@ -5,7 +5,7 @@ from db import Command, Shift, Worker
 WEEKDAYS = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'НД']
 
 
-class Parser():
+class Parser:
     @staticmethod
     def schedule(text, chat_id, message_id):
         end_time = datetime.strptime(
@@ -24,9 +24,9 @@ class Parser():
             if shift_finish_time < shift_start_time:
                 raise ValueError(f'start time {shift_start_time} \
 > finish time {shift_finish_time}')
-            name = WEEKDAYS[shift_start_time.weekday()] + ' '\
-                + shift_start_time.strftime('%m-%d %H:%M') + ' - '\
-                + shift_finish_time.strftime('%H:%M')
+            name = WEEKDAYS[shift_start_time.weekday()] + ' ' \
+                   + shift_start_time.strftime('%m-%d %H:%M') + ' - ' \
+                   + shift_finish_time.strftime('%H:%M')
             cost = round(
                 (shift_finish_time - shift_start_time).seconds / 3600, 2)
             s = Shift(
@@ -36,17 +36,16 @@ class Parser():
                 cost=cost
             )
             shifts.append(s)
+            start_time = datetime.now()
 
-        start_time = datetime.now()
-
-        command = Command(
-            message_id=message_id,
-            chat_id=chat_id,
-            name='create_schedule',
-            start_time=start_time,
-            end_time=end_time,
-            step=0,
-            is_done=False)
+            command = Command(
+                message_id=message_id,
+                chat_id=chat_id,
+                name='create_schedule',
+                start_time=start_time,
+                end_time=end_time,
+                step=0,
+                is_done=False)
 
         return command, shifts
 

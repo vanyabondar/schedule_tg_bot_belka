@@ -42,6 +42,9 @@ class Shift(Base):
     coefficient = Column(Float(), default=1)
     time_start = Column(DateTime(), nullable=False)
     time_finish = Column(DateTime(), nullable=False)
+    creation_command_id = Column(Integer(), ForeignKey('commands.command_id'))
+
+    command = relationship("Command", cascade="all,delete", backref="shift")
 
     def __str__(self):
         return f'{self.name} has_worker: {self.has_worker}'
@@ -49,7 +52,8 @@ class Shift(Base):
 
 class Command(Base):
     __tablename__ = 'commands'
-    message_id = Column(Integer(), primary_key=True)
+    command_id = Column(Integer(), primary_key=True)
+    message_id = Column(Integer())
     chat_id = Column(BigInteger(), ForeignKey('workers.chat_id'))
     name = Column(String(50), nullable=False)
     start_time = Column(DateTime())
@@ -94,6 +98,9 @@ class Schedule(Base):
         backref='schedule',
         lazy='subquery',
         uselist=False)
+
+    def __str__(self):
+        return f'shift_id = {self.shift_id} worker_id = {self.chat_id}'
 
 
 def init_db():

@@ -271,16 +271,18 @@ class ScheduleDB:
         finally:
             session.close()
 
-    def get_schedule(self, chat_id=None):
+    def get_schedule(self, chat_id=None, command_id=None):
         session = self.Session()
         try:
+            schedule_query = session.query(db.Schedule).join(db.Shift).order_by(
+                db.Schedule.shift_id)
             if chat_id:
-                sch = session.query(db.Schedule).filter(
-                    db.Schedule.chat_id == chat_id).order_by(
-                    db.Schedule.shift_id).all()
-            else:
-                sch = session.query(db.Schedule).order_by(
-                    db.Schedule.shift_id).all()
+                schedule_query = schedule_query.filter(
+                    db.Schedule.chat_id == chat_id)
+            if command_id:
+                schedule_query = schedule_query.filter(
+                    db.Shift.creation_command_id == command_id)
+            sch = schedule_query.all()
         finally:
             session.close()
         return sch
@@ -290,6 +292,16 @@ class ScheduleDB:
         try:
             sch = session.query(db.Schedule).get(id)
             session.delete(sch)
+            session.commit()
+        finally:
+            session.close()
+
+    def update_command_id_for_shifts(self, shifts, command_id):
+        session = self.Session()
+        try:
+            for shift in shifts:
+                shift.creation_command_id = command_id
+                session.add(shift)
             session.commit()
         finally:
             session.close()
