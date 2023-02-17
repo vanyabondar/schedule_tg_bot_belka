@@ -17,7 +17,6 @@ from messages import bot_messages, TIME_MESSAGE
 from schedule_db import ScheduleDB
 from parser import Parser
 from db import Worker, Schedule
-from integration_from_db_to_ga import WorkerGA, ShiftGA
 from message_creator import MessageCreator
 import config as config
 
@@ -152,7 +151,7 @@ and got coeff {coefficient}')
     async def get_rating(self, message):
         workers = self.db.get_all_workers()
         await message.reply(MessageCreator.rating(workers))
-        logger.success(f'rating was sended to {message.chat.id}')
+        logger.success(f'rating was sent to {message.chat.id}')
 
     async def change_rating(self, message):
         try:
@@ -219,7 +218,7 @@ and got coeff {coefficient}')
 
             if command.end_time <= command.start_time:
                 await message.reply(bot_messages['invalid_time'])
-                logger.warning(f'schedule сreating canceled because \
+                logger.warning(f'schedule creating cancelled because \
 end_time({command.end_time}) has passed')
                 return
         except ValueError as err:
@@ -235,7 +234,7 @@ end_time({command.end_time}) has passed')
 
         if not shifts:
             await message.reply(bot_messages['all_shifts_has_worker'])
-            logger.warning(f'schedule сreating canceled because \
+            logger.warning(f'schedule creating canceled because \
 all_shifts_has_worker')
             return
         self.db.save_command(command)
@@ -260,7 +259,6 @@ all_shifts_has_worker')
         logger.info('generic algorithm was finished')
         # Не виводиться графік
         logger.debug(f'answer: {str(ga_schedule)} mark: {str(ga_fitness)}')
-
 
         shifts_with_workers = []
         for shift in ga_schedule:
@@ -302,7 +300,7 @@ all_shifts_has_worker')
         except (ValueError, IndexError) as err:
             await message.reply(bot_messages['invalid_data'])
             await message.reply(bot_messages['add_worker_template'])
-            logger.warning(f'invalid data. ValuueError: {err}')
+            logger.warning(f'invalid data. ValueError: {err}')
 
     async def delete_worker(self, message):
         try:
@@ -315,10 +313,10 @@ all_shifts_has_worker')
             else:
                 await message.reply(bot_messages['worker_does_not_exist'])
                 logger.warning('worker with id: {worker_id} does not exist')
-        except (ValueError) as err:
+        except ValueError as err:
             await message.reply(bot_messages['invalid_data'])
             await message.reply(bot_messages['delete_worker_template'])
-            logger.warning(f'invalid data. ValuueError: {err}')
+            logger.warning(f'invalid data. ValueError: {err}')
             return
 
     async def send_welcome(self, message):
@@ -695,5 +693,5 @@ does not exist')
 
         self.dp.loop.create_task(self.on_startup())
         executor.start_polling(
-            self.dp, skip_updates=True, on_startup=self.setup_bot_commands)
+            self.dp, skip_updates=False, on_startup=self.setup_bot_commands)
             # self.dp, skip_updates=True)
