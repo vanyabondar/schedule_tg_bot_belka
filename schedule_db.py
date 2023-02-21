@@ -82,12 +82,15 @@ class ScheduleDB:
             session.close()
         return admins
 
-    def get_actual_shifts(self):
+    def get_actual_shifts(self, command_id=None):
         session = self.Session()
         try:
-            shifts = session.query(db.Shift).filter(
+            shifts_query = session.query(db.Shift).filter(
                 db.Shift.has_worker == False).order_by(
-                db.Shift.shift_id).all()
+                db.Shift.shift_id)
+            if command_id:
+                shifts_query.filter(db.Shift.creation_command_id == command_id)
+            shifts = shifts_query.all()
         finally:
             session.close()
         return shifts

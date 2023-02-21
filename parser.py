@@ -22,8 +22,7 @@ class Parser:
                 start_date_str + ' ' + line.split(' ')[3],
                 '%Y-%m-%d %H:%M')
             if shift_finish_time < shift_start_time:
-                raise ValueError(f'start time {shift_start_time} \
-> finish time {shift_finish_time}')
+                raise ValueError(f'start time {shift_start_time} > finish time {shift_finish_time}')
             name = WEEKDAYS[shift_start_time.weekday()] + ' ' \
                    + shift_start_time.strftime('%m-%d %H:%M') + ' - ' \
                    + shift_finish_time.strftime('%H:%M')
@@ -36,16 +35,16 @@ class Parser:
                 cost=cost
             )
             shifts.append(s)
-            start_time = datetime.now()
+        start_time = datetime.now()
 
-            command = Command(
-                message_id=message_id,
-                chat_id=chat_id,
-                name='create_schedule',
-                start_time=start_time,
-                end_time=end_time,
-                step=0,
-                is_done=False)
+        command = Command(
+            message_id=message_id,
+            chat_id=chat_id,
+            name='create_schedule',
+            start_time=start_time,
+            end_time=end_time,
+            step=0,
+            is_done=False)
 
         return command, shifts
 

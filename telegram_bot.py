@@ -261,7 +261,7 @@ all_shifts_has_worker')
         ga = GeneticAlgorithm(s, w)
         ga_schedule, ga_fitness = ga.calc_schedule(**GA_config)
         logger.info('generic algorithm was finished')
-        # Не виводиться графік
+
         logger.debug(f'answer: {[str(x) for x in ga_schedule]} mark: {str(ga_fitness)}')
 
         schedule = integration_from_db_to_ga.from_ga_schedule_to_db(
@@ -278,6 +278,8 @@ all_shifts_has_worker')
 
     async def schedule_notify(self, workers, command_id):
         schedule = self.db.get_schedule(command_id=command_id)
+        shifts_without_worker = self.db.get_actual_shifts()
+        await self.notify_admins(MessageCreator.shifts_without_worker(shifts_without_worker))
         await self.notify_admins(MessageCreator.schedule(schedule))
         for worker in workers:
             worker_schedule = [shift for shift in schedule if shift.worker.chat_id == worker.chat_id]
