@@ -229,6 +229,17 @@ class ScheduleDB:
             session.close()
         return res
 
+    def get_command_by_message_id(self, chat_id, message_id):
+        session = self.Session()
+        try:
+            res = session.query(db.Command).get(
+                db.Command.workers.worker_id == chat_id,
+                db.Command.workers.message_id == message_id
+            )
+        finally:
+            session.close()
+        return res
+
     def get_commands(self):
         session = self.Session()
         try:

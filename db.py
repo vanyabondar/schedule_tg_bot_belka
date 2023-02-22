@@ -14,15 +14,6 @@ worker_shift = Table(
     Column('shift_id', BigInteger(), ForeignKey('shifts.shift_id'))
 )
 
-# worker_command = Table(
-#     'worker_command', Base.metadata,
-#     Column('worker_command_id', BigInteger(), primary_key=True),
-#     Column('worker_id', BigInteger(), ForeignKey('workers.chat_id')),
-#     Column('command_id', Integer(), ForeignKey('command.command_id')),
-#     Column('message_id', BigInteger()),
-#     Column('coefficient', Float(), default=1)
-# )
-
 
 class WorkerCommand(Base):
     __tablename__ = 'worker_commands'

@@ -85,10 +85,9 @@ class TelegramBot:
         except (exceptions.BotBlocked, exceptions.ChatNotFound) as err:
             logger.error(f'can not send message to user with id: {chat_id}. {err}')
 
-    async def choose_shift(self, chat_id, shift_id):
+    async def choose_shift(self, chat_id, message_id, shift_id):
         # get worker and shift from db
         worker = self.db.get_worker(chat_id)
-        message_id = worker.message_id
         shift = self.db.get_shift(shift_id)
 
         # change shift on chosen or not chosen
@@ -110,9 +109,10 @@ class TelegramBot:
             reply_markup=kb
         )
 
-    async def confirm_chosen_shifts(self, chat_id):
+    async def confirm_chosen_shifts(self, chat_id, message_id):
         worker = self.db.get_worker(chat_id)
-        actual_shifts = self.db.get_actual_shifts()
+        command = self.db.get_command_by_message_id(chat_id, message_id)
+        actual_shifts = self.db.get_actual_shifts(command_id=command.command_id)
         actual_shifts_id = [shift.shift_id for shift in actual_shifts]
 
         # calculate worker coefficient

@@ -46,15 +46,17 @@ async def process_callback_decline_worker(callback_query: types.CallbackQuery):
 async def process_callback_shift(callback_query: types.CallbackQuery):
     code = int(callback_query.data[len('shift'):])
     chat_id = callback_query.message.chat.id
+    message_id = callback_query.message_id
     logger.info(lmc.callback(callback_query))
-    await tb.choose_shift(chat_id, code)
+    await tb.choose_shift(chat_id, message_id, code)
 
 
 @tb.dp.callback_query_handler(lambda c: c.data and c.data == 'done')
 async def process_callback_shifts_done(callback_query: types.CallbackQuery):
     chat_id = callback_query.message.chat.id
+    message_id = callback_query.message.message_id
     logger.info(lmc.callback(callback_query))
-    await tb.confirm_chosen_shifts(chat_id)
+    await tb.confirm_chosen_shifts(chat_id, message_id)
 
 
 @tb.dp.message_handler(tb.is_worker, commands=['start'])
