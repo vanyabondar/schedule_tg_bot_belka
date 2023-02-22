@@ -122,8 +122,8 @@ class TelegramBot:
             len(worker_actual_shifts) / len(actual_shifts))
 
         # update worker data in db
-        self.db.change_worker(chat_id, {'is_done': True, 'coefficient': coefficient})
-
+        # self.db.change_worker(chat_id, {'coefficient': coefficient})
+        worker.commands
         # update telegram chat
         await self.clear_keyboard(chat_id, worker.message_id)
         await self.send_message_to_user(
@@ -137,7 +137,19 @@ class TelegramBot:
 and got coeff {coefficient}')
 
     async def stop_schedule_creating(self, message):
-        command = self.db.get_command()
+        # Stop creating schedule by command_id or simply last schedule
+        try:
+            text = Parser.without_command(message.text)
+            if not text.strip():
+                command_id = None
+            else:
+                command_id = int(text)
+        except (ValueError, IndexError) as err:
+            await message.reply(bot_messages['invalid_data'])
+            await message.reply(bot_messages['stop_schedule_creating_template_template'])
+            logger.error(f'invalid data, {err}')
+            return
+        command = self.db.get_command(command_id)
         if not command or command.is_done:
             await message.reply(bot_messages['schedule_is_not_creating'])
             logger.warning('schedule is not creating')
@@ -238,15 +250,14 @@ end_time({command.end_time}) has passed')
 all_shifts_has_worker')
             return
 
-        self.db.save_command(command)
-        command = self.db.get_command()
-        self.db.update_command_id_for_shifts(shifts, command.command_id)
+        command_id = self.db.add_command(command)
+        self.db.update_command_id_for_shifts(shifts, command_id)
         self.db.change_all_worker({'is_done': False})
 
         logger.info('schedule creating was started')
-        await self.continue_creating_schedule()
+        await self.continue_creating_schedule(command_id)
 
-    async def continue_creating_schedule(self):
+    async def continue_creating_schedule(self, command_id):
         result = await self.get_wishes()
         logger.info('workers give their wishes')
         self.db.update_shift_coefficients()
@@ -542,6 +553,7 @@ with id {message.chat.id}')
             logger.error(f'invalid data, {err}')
             return
         shifts = []
+        # Replace to message creator
         for shift in STANDARD_SCHEDULE_TIMEDELTAS:
             shift_time_start = start_date + shift[0]
             shift_time_finish = shift_time_start + shift[1]
@@ -691,9 +703,10 @@ does not exist')
         await self.bot.set_my_commands(bot_commands)
 
     async def on_startup(self):
-        command = self.db.get_command()
-        if command and not command.is_done:
-            await self.continue_creating_schedule()
+        commands = self.db.get_commands()
+        for command in commands:
+            if command and not command.is_done:
+                await self.continue_creating_schedule(command.command_id)
 
     def run(self):
 

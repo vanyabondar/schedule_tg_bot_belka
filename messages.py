@@ -46,6 +46,7 @@ bot_messages = {
     'add_worker_template': '/add_worker 5018287782 @test 55.5',
     'get_schedule_template_template': '/get_schedule_template 2022-02-07',
     'change_worker_for_shift_template': '/change_worker_for_shift 264 @elohssa',
+    'stop_schedule_creating_template': '/stop_schedule_creating 12345',
     'change_rating_template': '''/change_rating
 @elohssa 20
 @test 22''',
@@ -73,7 +74,7 @@ bot_messages = {
 /add_worker - додати нового чергового
 /delete_worker - видалити чергового
 /create_schedule - запуск створення розкладу
-/stop_schedule_creating - зупинити створення розкладу
+/stop_schedule_creating - зупинити створення розкладу за номером(за замовчуванням останнього)
 /notify_all - відправити повідомлення всім черговим
 /get_schedule_template - отримати шаблон графіку починаючи з дати
 /clean_shifts - підтвердити пройдені зміни''',

@@ -9,10 +9,33 @@ Base = declarative_base()
 
 worker_shift = Table(
     'worker_shift', Base.metadata,
-    Column('worker_shift_id', Integer(), primary_key=True),
+    Column('worker_shift_id', BigInteger(), primary_key=True),
     Column('worker_id', BigInteger(), ForeignKey('workers.chat_id')),
-    Column('shift_id', Integer(), ForeignKey('shifts.shift_id'))
+    Column('shift_id', BigInteger(), ForeignKey('shifts.shift_id'))
 )
+
+# worker_command = Table(
+#     'worker_command', Base.metadata,
+#     Column('worker_command_id', BigInteger(), primary_key=True),
+#     Column('worker_id', BigInteger(), ForeignKey('workers.chat_id')),
+#     Column('command_id', Integer(), ForeignKey('command.command_id')),
+#     Column('message_id', BigInteger()),
+#     Column('coefficient', Float(), default=1)
+# )
+
+
+class WorkerCommand(Base):
+    __tablename__ = 'worker_commands'
+    worker_id = Column(ForeignKey('workers.chat_id'), primary_key=True),
+    command_id = Column(ForeignKey('command.command_id'), primary_key=True),
+    message_id = Column(BigInteger(), nullable=False),
+    coefficient = Column(Float(), default=1)
+
+    worker = relationship('Worker', back_populates='commands')
+    command = relationship('Command', back_populates='workers')
+
+
+command = relationship("Command", cascade="all,delete", backref="shift")
 
 
 class Worker(Base):
@@ -20,10 +43,7 @@ class Worker(Base):
     chat_id = Column(BigInteger(), primary_key=True, autoincrement=False)
     username = Column(String(50), nullable=False)
     rating = Column(Float(), nullable=False)
-    message_id = Column(Integer())
-    is_done = Column(Boolean(), default=False)
     is_admin = Column(Boolean(), default=False)
-    coefficient = Column(Float(), default=1)
 
     shifts = relationship(
         'Shift',
@@ -31,11 +51,12 @@ class Worker(Base):
         secondary=worker_shift,
         backref='workers'
     )
+    commands = relationship('WorkerCommand', back_populates='worker')
 
 
 class Shift(Base):
     __tablename__ = 'shifts'
-    shift_id = Column(Integer(), primary_key=True)
+    shift_id = Column(BigInteger(), primary_key=True)
     name = Column(String(50), nullable=False)
     cost = Column(Float(), nullable=False)
     has_worker = Column(Boolean(), default=False)
@@ -44,8 +65,6 @@ class Shift(Base):
     time_finish = Column(DateTime(), nullable=False)
     creation_command_id = Column(Integer(), ForeignKey('commands.command_id'))
 
-    command = relationship("Command", cascade="all,delete", backref="shift")
-
     def __str__(self):
         return f'{self.name} has_worker: {self.has_worker}'
 
@@ -53,13 +72,15 @@ class Shift(Base):
 class Command(Base):
     __tablename__ = 'commands'
     command_id = Column(Integer(), primary_key=True)
-    message_id = Column(Integer())
+    message_id = Column(BigInteger())
     chat_id = Column(BigInteger(), ForeignKey('workers.chat_id'))
     name = Column(String(50), nullable=False)
     start_time = Column(DateTime())
     end_time = Column(DateTime())
     step = Column(Integer())
     is_done = Column(Boolean(), default=False)
+
+    workers = relationship('WorkerCommand', back_populates='command')
 
 
 class RequestToAdmin(Base):
@@ -74,15 +95,15 @@ class RequestToAdmin(Base):
     __tablename__ = 'requests_to_admin'
     request_id = Column(Integer(), primary_key=True)
     chat_id = Column(BigInteger(), ForeignKey('workers.chat_id'))
-    message_id = Column(Integer(), nullable=False)
+    message_id = Column(BigInteger(), nullable=False)
     request_type = Column(EnumType(RequestType, name='request_type'), nullable=False)
     new_worker_chat_id = Column(BigInteger(), default=None)
 
 
 class Schedule(Base):
     __tablename__ = 'schedule'
-    schedule_id = Column(Integer(), primary_key=True)
-    shift_id = Column(Integer(), ForeignKey('shifts.shift_id'))
+    schedule_id = Column(BigInteger(), primary_key=True)
+    shift_id = Column(BigInteger(), ForeignKey('shifts.shift_id'))
     chat_id = Column(BigInteger(), ForeignKey('workers.chat_id'))
     rating = Column(Float(), nullable=False)
     is_notified = Column(Boolean(), default=False)
@@ -140,9 +161,9 @@ def init_db():
     session.close()
 
 
-def create_db(engine):
-    # Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
+def create_db(eng):
+    Base.metadata.drop_all(eng)
+    # Base.metadata.create_all(engine)
 
 
 if __name__ == "__main__":
@@ -153,4 +174,4 @@ if __name__ == "__main__":
     )
 
     create_db(engine)
-    init_db()
+    # init_db()

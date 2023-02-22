@@ -43,8 +43,8 @@ class Parser:
             name='create_schedule',
             start_time=start_time,
             end_time=end_time,
-            step=0,
-            is_done=False)
+            step=0
+        )
 
         return command, shifts
 

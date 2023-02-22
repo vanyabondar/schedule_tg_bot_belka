@@ -218,10 +218,21 @@ class ScheduleDB:
             session.close()
 
     # Command
-    def get_command(self, command_id):
+    def get_command(self, command_id=None):
         session = self.Session()
         try:
-            res = session.query(db.Command).get(command_id)
+            if command_id:
+                res = session.query(db.Command).get(command_id)
+            else:
+                res = session.query(db.Command).order_by(db.Command.command_id).first()
+        finally:
+            session.close()
+        return res
+
+    def get_commands(self):
+        session = self.Session()
+        try:
+            res = session.query(db.Command).order_by(db.Command.command_id).all()
         finally:
             session.close()
         return res
@@ -244,10 +255,19 @@ class ScheduleDB:
         finally:
             session.close()
 
-    def change_command(self, d):
+    def add_command(self, command):
         session = self.Session()
         try:
-            command = self.get_command()
+            session.add(command)
+            session.commit()
+        finally:
+            session.close()
+            return command.id
+
+    def change_command(self, command_id, d):
+        session = self.Session()
+        try:
+            command = session.query(db.Command).get(command_id)
             for key in d:
                 setattr(command, key, d[key])
             session.add(command)
