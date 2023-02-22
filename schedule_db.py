@@ -17,6 +17,7 @@ class ScheduleDB:
         self.engine = create_engine(db_path)
         self.Session = sessionmaker(bind=self.engine)
 
+    # Worker
     def get_worker(self, chat_id):
         session = self.Session()
         try:
@@ -34,37 +35,6 @@ class ScheduleDB:
             session.close()
         return worker
 
-    def get_shift(self, shift_id):
-        session = self.Session()
-        try:
-            shift = session.query(db.Shift).options(
-                joinedload(db.Shift.schedule)).get(shift_id)
-        finally:
-            session.close()
-        return shift
-
-    def change_worker(self, chat_id, d):
-        session = self.Session()
-        try:
-            w = session.query(db.Worker).get(chat_id)
-            for key in d:
-                setattr(w, key, d[key])
-            session.add(w)
-            session.commit()
-        finally:
-            session.close()
-
-    def change_command(self, d):
-        session = self.Session()
-        try:
-            command = self.get_command()
-            for key in d:
-                setattr(command, key, d[key])
-            session.add(command)
-            session.commit()
-        finally:
-            session.close()
-
     def get_all_workers(self):
         session = self.Session()
         try:
@@ -81,6 +51,56 @@ class ScheduleDB:
         finally:
             session.close()
         return admins
+
+    def save_worker(self, worker):
+        session = self.Session()
+        try:
+            session.add(worker)
+            session.commit()
+        finally:
+            session.close()
+
+    def delete_worker(self, worker_id):
+        session = self.Session()
+        try:
+            w = session.query(db.Worker).get(worker_id)
+            session.delete(w)
+            session.commit()
+        finally:
+            session.close()
+
+    def change_worker(self, chat_id, d):
+        session = self.Session()
+        try:
+            w = session.query(db.Worker).get(chat_id)
+            for key in d:
+                setattr(w, key, d[key])
+            session.add(w)
+            session.commit()
+        finally:
+            session.close()
+
+    def change_all_worker(self, d):
+        session = self.Session()
+        try:
+            workers = session.query(db.Worker).all()
+            for w in workers:
+                for key in d:
+                    setattr(w, key, d[key])
+                session.add(w)
+            session.commit()
+        finally:
+            session.close()
+
+    # Shift
+    def get_shift(self, shift_id):
+        session = self.Session()
+        try:
+            shift = session.query(db.Shift).options(
+                joinedload(db.Shift.schedule)).get(shift_id)
+        finally:
+            session.close()
+        return shift
 
     def get_actual_shifts(self, command_id=None):
         session = self.Session()
@@ -106,33 +126,20 @@ class ScheduleDB:
             session.close()
         return shifts
 
-    def change_all_worker(self, d):
-        session = self.Session()
-        try:
-            workers = session.query(db.Worker).all()
-            for w in workers:
-                for key in d:
-                    setattr(w, key, d[key])
-                session.add(w)
-            session.commit()
-        finally:
-            session.close()
-
-    def clear_shifts(self):
-        session = self.Session()
-        try:
-            shifts = session.query(db.Shift).all()
-            for s in shifts:
-                session.delete(s)
-            session.commit()
-        finally:
-            session.close()
-
     def save_shifts(self, shifts):
         session = self.Session()
         try:
             for shift in shifts:
                 session.add(shift)
+            session.commit()
+        finally:
+            session.close()
+
+    def delete_shift(self, shift_id):
+        session = self.Session()
+        try:
+            s = session.query(db.Shift).get(shift_id)
+            session.delete(s)
             session.commit()
         finally:
             session.close()
@@ -162,46 +169,62 @@ class ScheduleDB:
         finally:
             session.close()
 
-    def save_worker(self, worker):
+    def update_command_id_for_shifts(self, shifts, command_id):
         session = self.Session()
         try:
-            session.add(worker)
+            for shift in shifts:
+                shift.creation_command_id = command_id
+                session.add(shift)
             session.commit()
         finally:
             session.close()
 
-    def delete_worker(self, worker_id):
+    # Schedule
+    def get_schedule(self, chat_id=None, command_id=None):
         session = self.Session()
         try:
-            w = session.query(db.Worker).get(worker_id)
-            session.delete(w)
+            schedule_query = session.query(db.Schedule).join(db.Shift).order_by(
+                db.Schedule.shift_id)
+            if chat_id:
+                schedule_query = schedule_query.filter(
+                    db.Schedule.chat_id == chat_id)
+            if command_id:
+                schedule_query = schedule_query.filter(
+                    db.Shift.creation_command_id == command_id)
+            sch = schedule_query.all()
+        finally:
+            session.close()
+        return sch
+
+    def save_schedule(self, schedule, many=False):
+        session = self.Session()
+        try:
+            if many:
+                for s in schedule:
+                    session.add(s)
+            else:
+                session.add(schedule)
             session.commit()
         finally:
             session.close()
 
-    def delete_shift(self, shift_id):
+    def delete_schedule(self, schedule_id):
         session = self.Session()
         try:
-            s = session.query(db.Shift).get(shift_id)
-            session.delete(s)
+            sch = session.query(db.Schedule).get(schedule_id)
+            session.delete(sch)
             session.commit()
         finally:
             session.close()
 
-    # def print_all(self, table: str):
-    #     d = {
-    #         'workers': db.Worker,
-    #         'shifts': db.Shift,
-    #         'commands': db.Command
-    #     }
-    #     session = self.Session()
-    #     try:
-    #         rows = session.query(d[table]).all()
-    #
-    #         for row in rows:
-    #             print(row)
-    #     finally:
-    #         session.close()
+    # Command
+    def get_command(self, command_id):
+        session = self.Session()
+        try:
+            res = session.query(db.Command).get(command_id)
+        finally:
+            session.close()
+        return res
 
     def save_command(self, command):
         session = self.Session()
@@ -221,13 +244,26 @@ class ScheduleDB:
         finally:
             session.close()
 
-    def get_command(self):
+    def change_command(self, d):
         session = self.Session()
         try:
-            res = session.query(db.Command).first()
+            command = self.get_command()
+            for key in d:
+                setattr(command, key, d[key])
+            session.add(command)
+            session.commit()
         finally:
             session.close()
-        return res
+
+    # Request to admin
+    def get_requests_to_admin(self, key):
+        session = self.Session()
+        try:
+            request = session.query(db.RequestToAdmin).filter(
+                db.RequestToAdmin.new_worker_chat_id == key)
+        finally:
+            session.close()
+        return request
 
     def add_request_to_admin(self, chat_id, message_id, request_type, worker_chat_id):
         request = db.RequestToAdmin(
@@ -244,67 +280,11 @@ class ScheduleDB:
         finally:
             session.close()
 
-    def get_requests_to_admin(self, key):
-        session = self.Session()
-        try:
-            request = session.query(db.RequestToAdmin).filter(
-                db.RequestToAdmin.new_worker_chat_id == key)
-        finally:
-            session.close()
-        return request
-
     def delete_request(self, request_id):
         session = self.Session()
         try:
             r = session.query(db.RequestToAdmin).get(request_id)
             session.delete(r)
-            session.commit()
-        finally:
-            session.close()
-
-    def save_schedule(self, schedule, many=False):
-        session = self.Session()
-        try:
-            if many:
-                for s in schedule:
-                    session.add(s)
-            else:
-                session.add(schedule)
-            session.commit()
-        finally:
-            session.close()
-
-    def get_schedule(self, chat_id=None, command_id=None):
-        session = self.Session()
-        try:
-            schedule_query = session.query(db.Schedule).join(db.Shift).order_by(
-                db.Schedule.shift_id)
-            if chat_id:
-                schedule_query = schedule_query.filter(
-                    db.Schedule.chat_id == chat_id)
-            if command_id:
-                schedule_query = schedule_query.filter(
-                    db.Shift.creation_command_id == command_id)
-            sch = schedule_query.all()
-        finally:
-            session.close()
-        return sch
-
-    def delete_schedule(self, id):
-        session = self.Session()
-        try:
-            sch = session.query(db.Schedule).get(id)
-            session.delete(sch)
-            session.commit()
-        finally:
-            session.close()
-
-    def update_command_id_for_shifts(self, shifts, command_id):
-        session = self.Session()
-        try:
-            for shift in shifts:
-                shift.creation_command_id = command_id
-                session.add(shift)
             session.commit()
         finally:
             session.close()
