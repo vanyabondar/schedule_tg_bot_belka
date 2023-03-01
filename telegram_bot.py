@@ -608,7 +608,7 @@ with id {message.chat.id}')
                 if username.lower() == 'none' and s.schedule:
                     prev_chat_id = s.schedule.chat_id
                     self.db.delete_schedule(s.schedule.schedule_id)
-                    self.db.update_shift_has_worker(shift_id, False)
+                    self.db.update_shifts_has_worker([shift_id], False)
                     await self.send_message_to_user(
                         prev_chat_id,
                         MessageCreator.delete_your_shift(s.name))
@@ -635,7 +635,7 @@ does not exist')
                     await self.send_message_to_user(
                         w.chat_id,
                         MessageCreator.add_your_shift(s.name))
-                    self.db.update_shift_has_worker(shift_id, True)
+                    self.db.update_shifts_has_worker([shift_id], True)
                 await message.reply(bot_messages['ok'])
                 logger.success(f'worker for {s.name} was changed on \
 {username}')

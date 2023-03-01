@@ -218,10 +218,14 @@ class ScheduleDB:
             session.close()
 
     # Command
-    def get_command(self, command_id):
+    def get_command(self, command_id=None):
         session = self.Session()
         try:
-            res = session.query(db.Command).get(command_id)
+            if command_id:
+                res = session.query(db.Command).get(command_id)
+            else:
+                res = session.query(db.Command).first()
+
         finally:
             session.close()
         return res
